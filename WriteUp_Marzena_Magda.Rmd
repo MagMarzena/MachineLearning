@@ -1,0 +1,65 @@
+---
+title: "Writeup Coursera"
+author: "Marzena Magda"
+date: "Sunday, December 21, 2014"
+output: html_document
+---
+
+The project is related to activity recognition research - Qualitative Activity Recognition of Weight Lifting Exercises.
+The objective of the analysis is to  predict how the activities were performed (if the activity was exactly according to the specifcation or with some mistakes)
+
+The data set was uploaded from the site http://groupware.les.inf.puc-rio.br/har.
+
+```{r}
+training<-read.csv('C:\\Users\\Marzena\\Downloads\\pml-training.csv', header = TRUE, sep = ",", dec=",", stringsAsFactors=FALSE)
+testing<-read.csv('C:\\Users\\Marzena\\Downloads\\pml-testing.csv', header = TRUE, sep = ",", dec=",", stringsAsFactors=FALSE)
+
+```
+The packages used: 
+```{r}
+library(caret)
+library(randomForest)
+```
+
+First we did explanatory analysis. 
+I performed data cleaning. 
+I excluded variables with more than 50% of missing values.
+The zero covariates analysis showed that we should remove the variables that could have no impact on the resluts such as new window and variables with many blanks. I also decided to exclude variables such as index, timestamps and user name because they can have no impact on activities so finally I have only numeric data.
+
+```{r}
+summary(training)
+dim(training)
+training1<-training[,colSums(is.na(training)) < 80]
+nsv<-nearZeroVar(training1, saveMetrics=T)
+numeric<-sapply(training1, is.numeric)
+training2<-training1[,numeric]
+training2<-training2[,4:29]
+training3<-cbind(training$classe, training2)
+names(training3)[1]<-"classe"
+
+```
+In order to predict the manner how the activities were done. I chose the random forest algorithm with classe as independent variable and the numeric variables we kept as predictors. I checked the importance of the predictors as well. The most important predictores were: num_window and magnet_dumbbell_y.
+```{r}
+rf1<-randomForest(classe~., data=training3)
+rf1$importance
+print(rf1)
+```
+
+Out of bag estimate of  error rate of the model is 0.37%. The accuracy table with classification error of each class is:
+
+     A    B    C    D    E  class.error
+A 5577    2    0    0    1 0.0005376344
+B    1 3795    1    0    0 0.0005267316
+C    0   19 3403    0    0 0.0055523086
+D    1    0   37 3174    4 0.0130597015
+E    0    1    1    5 3600 0.0019406709
+
+To make predictions on testing data I used predict function:
+```{r}
+predictions<-predict(rf1,testing)
+```
+
+
+Source: Ugulino, W.; Cardador, D.; Vega, K.; Velloso, E.; Milidiu, R.; Fuks, H. Wearable Computing: Accelerometers' Data Classification of Body Postures and Movements. Proceedings of 21st Brazilian Symposium on Artificial Intelligence. Advances in Artificial Intelligence - SBIA 2012. In: Lecture Notes in Computer Science. , pp. 52-61. Curitiba, PR: Springer Berlin / Heidelberg, 2012. ISBN 978-3-642-34458-9. DOI: 10.1007/978-3-642-34459-6_6. 
+
+Read more: http://groupware.les.inf.puc-rio.br/har#ixzz3MYuktyAW
